@@ -8,16 +8,17 @@ function handleSubmit(event) {
   if (checkURL(formText)) {
     console.log("::: Form Submitted :::");
 
-    fetch('http://localhost:8000/sentiment', {
+    fetch('http://localhost:8000/analyze', {
       method: 'POST',
       credentials: 'same-origin',
-      headers: {
+      headers: {  
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ url: formText }),
     })
       .then((res) => res.json())
       .then((data) => {
+        console.log("The data issss" , data);
         document.getElementById('results').innerHTML = `
           <p>Agreement: ${data.agreement}</p>
           <p>Confidence: ${data.confidence}</p>

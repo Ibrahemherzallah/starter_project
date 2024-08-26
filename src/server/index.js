@@ -1,49 +1,59 @@
-// server/index.js
-const path = require('path');
 const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
 const axios = require('axios');
-const dotenv = require('dotenv');
-const apiKey = process.env.API_KEY;
-const apiUrl = 'https://api.meaningcloud.com/sentiment-2.1';
-
-dotenv.config();
+const path = require('path');
+const cors = require('cors');
+const dotenv = require('dotenv').config();
+const port = process.env.PORT || 8000;
+const API_KEY = process.env.API_KEY;
 
 const app = express();
 
 app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static('dist'));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../../dist')));
+
+console.log("API Key:", API_KEY);
 
 app.get('/', (req, res) => {
-  res.sendFile(path.resolve('dist/index.html'));
+    res.sendFile(path.join(__dirname, '../../dist/index.html'));
 });
 
-app.post('/sentiment', async (req, res) => {
+app.post('/analyze', async (req, res) => {
   const { url } = req.body;
-  
   if (!url) {
-    return res.status(400).send({ error: 'URL is required' });
+    return res.status(400).json({ message: 'URL is required' });
   }
 
   try {
-    const response = await axios.post(apiUrl, null, {
+    const response = await axios.post('https://api.meaningcloud.com/sentiment-2.1', null, {
       params: {
-        key: apiKey,
-        lang: 'en',
+        key: API_KEY,
         url: url,
+        lang: 'en',
       },
     });
-    
-    res.send(response.data);
+
+    const { data } = response;
+
+    if (data.status.code === '0') {
+      const result = {
+        agreement: data.agreement || 'N/A',
+        confidence: data.confidence || 'N/A',
+        irony: data.irony || 'N/A',
+        model: data.model || 'N/A',
+        scoreTag: data.score_tag || 'N/A',
+        subjectivity: data.subjectivity || 'N/A',
+      };
+
+      res.json(result);
+    } else {
+      res.status(400).json({ message: data.status.msg });
+    }
   } catch (error) {
-    console.error('Error making API request:', error);
-    res.status(500).send({ error: 'Error processing request' });
+    res.status(500).json({ message: error.message });
   }
 });
 
-const port = 8000;
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+    console.log(`Server running at http://localhost:${port}`);
 });
